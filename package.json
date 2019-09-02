@@ -9,10 +9,8 @@
     "react-awesome-slider": "^1.0.1",
     "react-dom": "^16.9.0",
     "react-scripts": "3.1.1",
-    "react-slideshow-image": "^1.2.2",
-    "semantic": "0.0.1",
-    "semantic-ui": "^2.4.2",
-    "semantic-ui-react": "^0.88.0"
+    "react-slideshow-image": "^1.2.2"
+ 
   },
   "scripts": {
     "start": "react-scripts start",

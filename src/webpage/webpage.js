@@ -177,10 +177,7 @@ class Main extends React.Component {
   }
 
   saveData = (collection, item) => {
-   // assume a create action taken here
-   if(item.id === ''){
-   //  console.log(item, item.id)
-       item.id = this.idCounter++
+
        this.setState({memoirs: this.state.memoirs = this.state.memoirs.concat(item)})
    }
   componentDidMount(){
