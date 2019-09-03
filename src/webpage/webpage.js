@@ -51,13 +51,14 @@ const valentines = [
     Darkness cannot drive out darkness: only light can do that .\
    only love can do that",
     likes: 0,
-    vtype: false
   }
 ]
 
  const ReadModeContext = React.createContext({
     more: false
 })
+
+
 
 function Guides() {
   return(
@@ -71,13 +72,68 @@ function Guides() {
 
 }
 
+class ValidationDisplay extends React.Component {
+    render() {
+        return this.props.errors
+            ? this.props.errors.map(err =>
+                <div className="small bg-danger text-white mt-1 p-1"
+                        key={ err } >
+                    { err }
+                  </div>)
+                : null
+        }
+
+
+}
+
+
+
+const GetValidationMessages = (elem) => {
+    let errors = [];
+    if (!elem.checkValidity()) {
+        if (elem.validity.valueMissing) {
+            errors.push("Value required");
+        }
+        if (elem.validity.tooShort) {
+            errors.push("Value is too short");
+        }
+        if (elem.validity.rangeUnderflow) {
+            errors.push("Value is too small");
+        }
+        if (elem.validity.rangeOverlow){
+          errors.push('Maximum value required is 100')
+        }
+    }
+    return errors;
+}
 
 class ModalForm extends React.Component {
-  constructor(){
-    super()
-    this.state = {
-      isShowing: false
+  constructor(props) {
+          super(props);
+          this.formElements = {
+              firstname: { label: "Firstame", name: "firstname",
+                  validation: { required: true, minLength: 3 }},
+              lastname: { label: "Lastname", name:"lastname",
+                  validation: { required: true, minLength: 5 }},
+              username: { label: "Username", name: "username",
+                  validation: {  required: true, minLength: 5 }},
+              headline: { label: "Headline", name: "headline",
+                  validation: { required: true, minLength: 5 }},
+              story:  { label: "Story", name: "story",
+                  validation: { required: true, maxLength: 100 }},
+          }
+          this.state = {
+              errors: {}
+          }
+
+
+    this.disabled = false
+    this.error_msgs = {
+      username: 'username already has a memoir',
+      story: 'should not exceed 100 characters'
     }
+
+
   }
   openModalHandler = () => {
        this.setState({
@@ -90,6 +146,41 @@ class ModalForm extends React.Component {
            isShowing: false
        });
    }
+   setElement = (element) => {
+         if (element !== null) {
+             this.formElements[element.name].element = element;
+         }
+     }
+     handleAdd = () => {
+         if (this.validateFormElements()) {
+             let data = {};
+             Object.values(this.formElements)
+                 .forEach(v => {
+                     data[v.element.name] = v.element.value;
+                     v.element.value = "";
+                 });
+             data['likes'] = 0
+             this.props.callback(data);
+             this.formElements.firstname.element.focus();
+         }
+     }
+
+     validateFormElement = (name) => {
+         let errors = GetValidationMessages(this.formElements[name].element);
+         this.setState(state => state.errors[name] = errors);
+         return errors.length === 0;
+     }
+     validateFormElements = () => {
+         let valid = true;
+         Object.keys(this.formElements).forEach(name => {
+             if (!this.validateFormElement(name)) {
+                 valid = false;
+             }
+         })
+         return valid;
+     }
+
+
    render () {
          return (
              <div>
@@ -102,30 +193,41 @@ class ModalForm extends React.Component {
                      className="modal"
                      show={this.state.isShowing}
                      close={this.closeModalHandler}>
-                     <div className='ui form'>
-                       <div className='field'>
-                          <label>First Name</label>
-                         <input type='text' name='firstname'/>
-                         </div>
-
-                       <div className='field'>
-                          <label>Last Name</label>
-                         <input type='text' name='lastname'/>
-                       </div>
-
-                       <div className='field'>
-                          <label>UserName</label>
-                         <input type='text' name='username' onChange={this.props.validateUser} />
-                       </div>
-                       <div className='field'>
-                         <label>Headline</label>
-                         <input type='text' name='headline'/>
-                       </div>
-                       <div className='field'>
-                         <label> Your Story</label>
-<textarea rows="2"></textarea>                       </div>
-                         <button class="ui button" disabled={this.props.disabled} type="submit" onClick={this.props.saveCallback}>Submit</button>
-                     </div>
+                     {
+    Object.values(this.formElements).map(elem =>
+        <div className="form-group p-2" key={ elem.name }>
+            <label>{ elem.label }</label>
+            { elem.name === 'story' ?
+              <React.Fragment>
+              <textarea className="form-control"
+                  name={ elem.name }
+                  maxlength='99'
+                  ref={ this.setElement }
+                  onChange={ () => this.validateFormElement(elem.name) }
+                  { ...elem.validation} />
+              <ValidationDisplay
+                   errors={ this.state.errors[elem.name] } />
+               </React.Fragment>
+                  :
+            <React.Fragment>
+            <input className="form-control"
+                name={ elem.name }
+                autoFocus={ elem.name === "firstname" }
+                ref={ this.setElement }
+                onChange={ () => this.validateFormElement(elem.name) }
+                { ...elem.validation} />
+              {elem.name === 'username' ? this.props.errors : ''}
+            <ValidationDisplay
+                 errors={ this.state.errors[elem.name] } />
+             </React.Fragment>
+             }
+        </div>)
+}
+<div className="text-center">
+    <button className="btn btn-primary" disabled={this.props.disabled} onClick={ this.handleAdd }>
+        Add
+    </button>
+</div>
 
                  </Modal>
              </div>
@@ -144,23 +246,8 @@ const properties = {
   }
 }
 
-export class ProModeToggle extends React.Component {
-    render() {
-        return <ReadModeContext.Consumer>
-            { contextData => (
-                <div className="form-check">
-                    <input type="checkbox" className="form-check-input"
-                        value={ contextData.proMode }
-                        onChange={ contextData.toggleProMode } />
-                    <label className="form-check-label">
-                        { this.props.label }
-                    </label>
-                </div>
-                )
-            }
-        </ReadModeContext.Consumer>
-    }
-}
+
+
 
 class Main extends React.Component {
   constructor(props){
@@ -168,18 +255,28 @@ class Main extends React.Component {
     this.state = {
       images: [],
       memoirs: valentines,
-      vtype: {more: false}
+      vtype: {more: false},
+      error: ''
+
     }
 
     this.vtext = 'view more'
 
-
   }
 
-  saveData = (collection, item) => {
+  saveData = (item) => {
 
-       this.setState({memoirs: this.state.memoirs = this.state.memoirs.concat(item)})
+    let main = Object.keys(this.state.memoirs).filter(key => this.state.memoirs[key].username === item.username )
+    if (main.length !== 0){
+      this.setState({error: 'user can not create more than once'})
+
+    }
+    else{
+      this.setState({memoirs: this.state.memoirs = this.state.memoirs.concat(item)}, )
+      this.setState({error: ''})
+
    }
+ }
   componentDidMount(){
 
     fetch(`https://api.unsplash.com/search/photos?query=valentine`,{
@@ -207,9 +304,7 @@ class Main extends React.Component {
 
 
     Object.keys(this.state.memoirs).filter(key => this.state.memoirs[key].username === ev.target.id)
-    .forEach(key =>
-
-        this.state.vtype.more == false ?
+    .forEach(key => this.state.vtype.more == false ?
         this.setState(state => this.state.memoirs[key].story = this.state.memoirs[key].story.slice(0,100), () =>
       {this.vtext = ''})
 
@@ -276,13 +371,8 @@ class Main extends React.Component {
         </div>
         <div className='row'>
           <div className='offset-4 col-4 offset-4'>
-            <button className='ui large huge button text center'>
-              <i className='ui plus icon'>
-              </i>
-              Add Memoir
 
-            </button>
-            <ModalForm />
+            <ModalForm errors={this.state.error} callback={this.saveData}/>
           </div>
         </div>
 
@@ -302,7 +392,6 @@ class Main extends React.Component {
                       {m.headline}
                     </div>
                     <div className="description">
-                      <ReadModeContext.Provider value={this.state.vtype}>
                       <span id={m.username} onClickCapture={this.tbc}>
                         {this.state.vtype.more ? m.story.slice(0, 40) : m.story.slice(0,100)}
 
@@ -311,7 +400,6 @@ class Main extends React.Component {
                         {this.vtext}
                       </button>
                     </span>
-                      </ReadModeContext.Provider>
 
                     </div>
                   </div>
